@@ -1,0 +1,37 @@
+# ============================================================================
+# public/.htaccess
+# - Deny dotfiles
+# - Force all non-asset requests through index.php (front controller)
+# - Send a few security headers
+# - Disallow listing directories
+# ============================================================================
+
+# Block dotfiles (".git", ".env", ".htaccess", …).
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+Options -Indexes
+
+# Serve real assets (CSS/JS/images) directly; route everything else to index.php.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Send the request through index.php if the file does not exist on disk.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !\.(?:css|js|jpe?g|png|gif|svg|ico|webp|woff2?|ttf|eot)$ [NC]
+  RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Fallback when mod_rewrite is unavailable: PHP built-in server, or hosts
+# that disable .htaccess rewrites, will route everything through index.php
+# anyway, so this file is silent there.
+
+# Security headers (Apache 2.4).
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "same-origin"
+  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>

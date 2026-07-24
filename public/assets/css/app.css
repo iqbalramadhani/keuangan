@@ -1,0 +1,172 @@
+/* ===========================================================================
+   Keuangan — app.css (vanilla, no framework, mobile-first)
+   =========================================================================== */
+
+:root {
+  --bg:        #f6f7fb;
+  --fg:        #1f2330;
+  --muted:     #6b7280;
+  --border:    #e5e7eb;
+  --card:      #ffffff;
+  --brand:     #4f46e5;
+  --brand-dim: #4338ca;
+  --accent:    #0ea5e9;
+  --income:    #059669;
+  --expense:   #dc2626;
+  --warn:      #d97706;
+  --radius:    8px;
+  --shadow:    0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(15,23,42,.05);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.45;
+  font-size: 14px;
+}
+
+a { color: var(--brand); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1, h2, h3 { margin: 0 0 .6rem; line-height: 1.25; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.125rem; }
+.muted { color: var(--muted); font-size: .875rem; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+
+/* === Top bar ============================================================= */
+.topbar {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 56px;
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { font-weight: 700; color: var(--fg); font-size: 1rem; }
+.topnav { display: flex; gap: .25rem; flex: 1; margin-left: 1rem; }
+.topnav a {
+  color: var(--fg); padding: .45rem .75rem; border-radius: var(--radius);
+}
+.topnav a:hover { background: #eef0f4; text-decoration: none; }
+.user-chip { display: flex; align-items: center; gap: .75rem; }
+.user-chip form { margin: 0; }
+
+/* === Auth ================================================================ */
+.auth-page { min-height: 100vh; display: grid; place-items: center; padding: 1rem; }
+.auth-card {
+  background: var(--card); border-radius: 12px; box-shadow: var(--shadow);
+  padding: 2rem; width: 100%; max-width: 360px;
+}
+.brand-title { font-size: 1.5rem; margin-bottom: .25rem; }
+
+/* === Layout ============================================================== */
+.main { padding: 1.25rem; max-width: 1100px; margin: 0 auto; }
+.page h1 { margin-bottom: 1rem; }
+.footer { text-align: center; padding: 1rem; color: var(--muted); }
+
+/* === Cards =============================================================== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+
+/* === KPI ================================================================ */
+.kpi-grid {
+  display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem;
+}
+@media (min-width: 720px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+.kpi-label { color: var(--muted); font-size: .875rem; }
+.kpi-value { font-size: 1.4rem; font-weight: 700; margin-top: .25rem; }
+.kpi-value.income  { color: var(--income); }
+.kpi-value.expense { color: var(--expense); }
+.kpi-value.balance { color: var(--fg); }
+
+/* === Forms ============================================================== */
+.form { display: flex; flex-direction: column; gap: .75rem; max-width: 480px; }
+.form label, .filters label {
+  display: flex; flex-direction: column; gap: .25rem; font-size: .875rem;
+}
+.form input, .form select, .filters input, .filters select {
+  padding: .5rem .65rem; border: 1px solid var(--border); border-radius: var(--radius);
+  font: inherit; background: #fff; color: inherit;
+}
+.form input:focus, .form select:focus { border-color: var(--brand); outline: 0; box-shadow: 0 0 0 3px rgba(79,70,229,.15); }
+.fieldset { border: 1px solid var(--border); border-radius: var(--radius); padding: .5rem .75rem; }
+.radio { flex-direction: row !important; align-items: center; gap: .35rem; }
+.form-actions { display: flex; gap: .75rem; align-items: center; }
+
+/* === Buttons ============================================================ */
+.btn-primary {
+  background: var(--brand); color: #fff; border: 0; padding: .55rem 1rem;
+  border-radius: var(--radius); cursor: pointer; font: inherit;
+}
+.btn-primary:hover { background: var(--brand-dim); }
+.btn-secondary {
+  background: #fff; color: var(--fg); border: 1px solid var(--border);
+  padding: .45rem .9rem; border-radius: var(--radius); cursor: pointer; font: inherit;
+}
+.btn-link {
+  background: none; border: 0; color: var(--brand); cursor: pointer; padding: .25rem 0;
+  font: inherit;
+}
+.btn-link:hover { text-decoration: underline; }
+.btn-link.danger { color: var(--expense); }
+.inline { display: inline; margin: 0; }
+
+/* === Tables ============================================================= */
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td {
+  text-align: left; padding: .55rem .75rem; border-bottom: 1px solid var(--border);
+}
+.table th { color: var(--muted); font-weight: 500; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.table .num.income  { color: var(--income); }
+.table .num.expense { color: var(--expense); }
+.row-actions { display: flex; gap: .5rem; align-items: center; }
+
+/* === Filters ============================================================ */
+.filters { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; align-items: flex-end; }
+.filters label { font-size: .875rem; }
+.filters input, .filters select { padding: .4rem .5rem; }
+
+/* === Badges & chips ====================================================== */
+.badge {
+  display: inline-block; padding: .15rem .55rem; border-radius: 999px;
+  font-size: .75rem; font-weight: 500; border: 1px solid var(--border); background: #fff;
+}
+.badge-income  { color: var(--income); background: #ecfdf5; border-color: #a7f3d0; }
+.badge-expense { color: var(--expense); background: #fef2f2; border-color: #fecaca; }
+
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .35rem; vertical-align: middle; }
+.dot.income  { background: var(--income); }
+.dot.expense { background: var(--expense); }
+
+/* === Flashes ============================================================ */
+.flashes { list-style: none; max-width: 1100px; margin: 1rem auto 0; padding: 0 1.25rem; }
+.flash { padding: .6rem .8rem; border-radius: var(--radius); margin-bottom: .5rem; }
+.flash-success { background: #ecfdf5; color: var(--income); border: 1px solid #a7f3d0; }
+.flash-error   { background: #fef2f2; color: var(--expense); border: 1px solid #fecaca; }
+
+/* === Categories ========================================================= */
+.grid-2 {
+  display: grid; grid-template-columns: 1fr; gap: 1rem;
+}
+@media (min-width: 720px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+.inline-form { display: flex; gap: .5rem; margin-bottom: .75rem; }
+.inline-form input { flex: 1; padding: .45rem .55rem; border: 1px solid var(--border); border-radius: var(--radius); }
+.category-list { list-style: none; padding: 0; margin: 0; }
+.category-list li {
+  display: flex; justify-content: space-between; align-items: center; gap: .75rem;
+  padding: .45rem 0; border-bottom: 1px dashed var(--border);
+}
+.category-list li:last-child { border-bottom: 0; }

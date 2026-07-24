@@ -1,0 +1,54 @@
+name: Deploy to Shared Hosting
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+  DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+
+jobs:
+  lint:
+    name: PHP Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run php -l on all PHP files
+        run: |
+          echo "Linting all PHP files…"
+          find . -name '*.php' \
+            -not -path './vendor/*' \
+            -not -path './.git/*' \
+            -print0 | xargs -0 -n1 -I{} php -l "{}"
+
+  deploy:
+    name: FTP Deploy
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: FTP Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v5.1.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          exclude: |
+            --exclude=.github
+            --exclude=.gitlab-ci.yml
+            --exclude=.gitignore
+            --exclude=.DS_Store
+            --exclude=config/db.php
+            --exclude=setup.php
+            --exclude=app/Views/migrate/
+            --exclude=database/migrations/README.md
+            --exclude=sql/
+            --exclude=composer.*
+            --exclude=phpunit.xml
+      - name: Trigger Migration
+        run: |
+          curl -sf "https://${{ secrets.DEPLOY_URL }}/setup.php?token=${{ secrets.DEPLOY_TOKEN }}" || echo "Migration trigger failed (check DEPLOY_URL + DEPLOY_TOKEN)"

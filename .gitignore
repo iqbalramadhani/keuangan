@@ -1,0 +1,22 @@
+# Env / secrets
+.env
+config/db.php
+
+# Runtime
+installed.lock
+*.log
+/tmp/
+/runtime/
+
+# Composer (dev artifacts, recreated via CI)
+/vendor/
+composer.lock
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# PHPUnit
+.phpunit.cache

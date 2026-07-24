@@ -1,0 +1,11 @@
+# Block direct access to anything above /public on shared hosting.
+# If deploying to cPanel/XAMPP and the entire repo is mirrored into
+# /public_html/, deny access to non-public folders explicitly below.
+
+Require all denied
+
+<IfModule mod_headers.c>
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "same-origin"
+</IfModule>

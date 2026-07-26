@@ -75,7 +75,7 @@ final class Transaction extends Model
             ':d'    => $description,
             ':date' => $txDate,
         ]);
-        return (int)$stmt->lastInsertId();
+        return (int)$this->db->lastInsertId();
     }
 
     public function update(int $id, int $userId, int $categoryId, string $type, string $amount, ?string $description, string $txDate): bool

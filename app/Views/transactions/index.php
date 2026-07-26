@@ -2,14 +2,14 @@
 declare(strict_types=1);
 /**
  * @var array $rows
- * @var array $categories
+ * @var array $categories  (flat list from Category::all())
  * @var array $filters
  * @var string $csrf
  */
 use App\Helpers\Money;
 
 $rows       = $rows       ?? [];
-$categories = $categories ?? ['income' => [], 'expense' => []];
+$categories = $categories ?? [];
 $filters    = $filters    ?? ['from' => '', 'to' => '', 'type' => '', 'category_id' => ''];
 ?>
 <div class="page">
@@ -39,14 +39,9 @@ $filters    = $filters    ?? ['from' => '', 'to' => '', 'type' => '', 'category_
       Kategori
       <select name="category_id">
         <option value="">Semua</option>
-        <?php foreach (($categories['income'] ?? []) as $c): ?>
+        <?php foreach ($categories as $c): ?>
           <option value="<?= (int)$c['id'] ?>" <?= (string)$c['id'] === $filters['category_id'] ? 'selected' : '' ?>>
-            🟢 <?= e($c['name']) ?>
-          </option>
-        <?php endforeach; ?>
-        <?php foreach (($categories['expense'] ?? []) as $c): ?>
-          <option value="<?= (int)$c['id'] ?>" <?= (string)$c['id'] === $filters['category_id'] ? 'selected' : '' ?>>
-            🔴 <?= e($c['name']) ?>
+            <?= e($c['name']) ?>
           </option>
         <?php endforeach; ?>
       </select>

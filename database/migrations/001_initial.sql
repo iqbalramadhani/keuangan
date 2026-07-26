@@ -1,9 +1,6 @@
 -- ============================================================================
 -- 001_initial.sql — base schema for Keuangan
 -- ============================================================================
--- This is the first migration. Creates the four core tables and seeds the
--- two built-in parent categories (Pemasukan / Pengeluaran).
---
 -- Idempotent: every CREATE TABLE uses IF NOT EXISTS; the INSERT uses IGNORE,
 -- so re-applying this file on a populated DB is harmless.
 -- ============================================================================
@@ -21,23 +18,20 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- ---------------------------------------------------------------------------
 -- categories
---   type = 'income' | 'expense'
---   is_builtin = 1 protects seed rows from deletion
+--   Sekarang tidak punya ENUM type — bisa dipakai untuk income ATAU expense
+--   atau keduanya. Filter di app layer.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `categories` (
   `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `type`       ENUM('income','expense') NOT NULL,
   `name`       VARCHAR(64) NOT NULL,
-  `is_builtin` TINYINT(1)   NOT NULL DEFAULT 0,
-  `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `uq_type_name` (`type`, `name`),
-  KEY `idx_type` (`type`)
+  `is_builtin` TINYINT(1)  NOT NULL DEFAULT 0,
+  `created_at` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
 -- transactions
---   type is denormalized onto transactions so aggregate queries
---   do not need to JOIN categories every time.
+--   type adalah milik transaksi, bukan kategori.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `transactions` (
   `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -71,6 +65,6 @@ CREATE TABLE IF NOT EXISTS `login_attempts` (
 -- ---------------------------------------------------------------------------
 -- Seed built-in parent categories (cannot be deleted)
 -- ---------------------------------------------------------------------------
-INSERT IGNORE INTO `categories` (`type`, `name`, `is_builtin`) VALUES
-  ('income',  'Pemasukan',   1),
-  ('expense', 'Pengeluaran', 1);
+INSERT IGNORE INTO `categories` (`name`, `is_builtin`) VALUES
+  ('Pemasukan',   1),
+  ('Pengeluaran', 1);

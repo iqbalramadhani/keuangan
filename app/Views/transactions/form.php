@@ -2,13 +2,13 @@
 declare(strict_types=1);
 /**
  * @var ?array $tx
- * @var array $categories
+ * @var array $categories  (flat list from Category::all())
  * @var string $csrf
  */
 use App\Helpers\Money;
 
 $tx         = $tx         ?? null;
-$categories = $categories ?? ['income' => [], 'expense' => []];
+$categories = $categories ?? [];
 
 $isEdit   = (bool)$tx;
 $action   = $isEdit ? '/transactions/update' : '/transactions';
@@ -42,22 +42,13 @@ $date     = $tx['tx_date']        ?? date('Y-m-d');
     <label>
       Kategori
       <select name="category_id" required>
-        <optgroup label="Pemasukan">
-          <?php foreach (($categories['income'] ?? []) as $c): ?>
-            <option value="<?= (int)$c['id'] ?>"
-              <?= $catId === (int)$c['id'] ? 'selected' : '' ?>>
-              <?= e($c['name']) ?>
-            </option>
-          <?php endforeach; ?>
-        </optgroup>
-        <optgroup label="Pengeluaran">
-          <?php foreach (($categories['expense'] ?? []) as $c): ?>
-            <option value="<?= (int)$c['id'] ?>"
-              <?= $catId === (int)$c['id'] ? 'selected' : '' ?>>
-              <?= e($c['name']) ?>
-            </option>
-          <?php endforeach; ?>
-        </optgroup>
+        <option value="">— Pilih kategori —</option>
+        <?php foreach ($categories as $c): ?>
+          <option value="<?= (int)$c['id'] ?>"
+            <?= $catId === (int)$c['id'] ? 'selected' : '' ?>>
+            <?= e($c['name']) ?>
+          </option>
+        <?php endforeach; ?>
       </select>
     </label>
 

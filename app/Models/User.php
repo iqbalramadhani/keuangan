@@ -32,7 +32,7 @@ final class User extends Model
         $sql  = 'INSERT INTO users (username, password_hash) VALUES (:u, :h)';
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':u' => $username, ':h' => $hash]);
-        return (int)$stmt->lastInsertId();
+        return (int)$this->db->lastInsertId();
     }
 
     public function count(): int

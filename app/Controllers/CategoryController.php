@@ -15,15 +15,17 @@ final class CategoryController extends Controller
         \App\Helpers\auth_require_login();
         $catMdl = new Category($this->db);
 
-        $byType = [
-            'income'  => $catMdl->findByType('income'),
-            'expense' => $catMdl->findByType('expense'),
-        ];
+        $all = $catMdl->all();
+
+        $builtin = array_values(array_filter($all, fn($c) => (int)$c['is_builtin'] === 1));
+        $custom  = array_values(array_filter($all, fn($c) => (int)$c['is_builtin'] !== 1));
 
         $this->render('categories/index', [
-            'title'    => 'Kategori — Keuangan',
-            'byType'   => $byType,
-            'csrf'     => \App\Helpers\csrf_token(),
+            'title'   => 'Kategori — Keuangan',
+            'builtin' => $builtin,
+            'custom'  => $custom,
+            'all'     => $all,
+            'csrf'    => \App\Helpers\csrf_token(),
         ]);
     }
 
@@ -36,22 +38,18 @@ final class CategoryController extends Controller
             $this->redirect('/categories');
             return;
         }
-        $type = (string)$this->request->postInput('type', '');
+
         $name = trim((string)$this->request->postInput('name', ''));
-        if (!in_array($type, ['income','expense'], true)) {
-            Flash::error('Tipe tidak valid.');
-            $this->redirect('/categories');
-            return;
-        }
         $name = Validation::text($name, 64);
         if ($name === '') {
             Flash::error('Nama kategori wajib diisi (1-64 karakter).');
             $this->redirect('/categories');
             return;
         }
+
         try {
             $catMdl = new Category($this->db);
-            $catMdl->create($type, $name);
+            $catMdl->create($name);
             Flash::success('Kategori ditambahkan.');
         } catch (\PDOException $e) {
             // Duplicate name (UNIQUE).

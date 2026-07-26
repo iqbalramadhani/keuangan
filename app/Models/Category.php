@@ -8,42 +8,30 @@ use App\Core\Model;
 final class Category extends Model
 {
     /**
-     * @return array<int, array{id:int, type:string, name:string, is_builtin:int}>
+     * @return array<int, array{id:int, name:string, is_builtin:int}>
      */
     public function all(): array
     {
         return $this->fetchAll(
-            'SELECT id, type, name, is_builtin FROM categories ORDER BY type, name'
-        );
-    }
-
-    /**
-     * @return array<int, array{id:int, type:string, name:string, is_builtin:int}>
-     */
-    public function findByType(string $type): array
-    {
-        return $this->fetchAll(
-            'SELECT id, type, name, is_builtin FROM categories
-             WHERE type = :t ORDER BY name',
-            [':t' => $type]
+            'SELECT id, name, is_builtin FROM categories ORDER BY name'
         );
     }
 
     public function find(int $id): ?array
     {
         return $this->fetchOne(
-            'SELECT id, type, name, is_builtin FROM categories WHERE id = :id LIMIT 1',
+            'SELECT id, name, is_builtin FROM categories WHERE id = :id LIMIT 1',
             [':id' => $id]
         );
     }
 
-    public function create(string $type, string $name): int
+    public function create(string $name): int
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO categories (type, name, is_builtin) VALUES (:t, :n, 0)'
+            'INSERT INTO categories (name, is_builtin) VALUES (:n, 0)'
         );
-        $stmt->execute([':t' => $type, ':n' => $name]);
-        return (int)$stmt->lastInsertId();
+        $stmt->execute([':n' => $name]);
+        return (int)$this->db->lastInsertId();
     }
 
     /**

@@ -1,78 +1,60 @@
 <?php
 declare(strict_types=1);
 /**
- * @var array $byType
+ * @var array $builtin  (built-in categories, not deletable)
+ * @var array $custom   (user-created categories, deletable)
+ * @var array $all      (full list for the form)
+ * @var string $csrf
  */
 use App\Helpers\Money;
 
-$byType = $byType ?? ['income' => [], 'expense' => []];
+$builtin = $builtin ?? [];
+$custom  = $custom  ?? [];
 ?>
 <div class="page">
   <h1>Kategori</h1>
-  <p class="muted">Kelola subkategori di bawah Pemasukan &amp; Pengeluaran. Dua kategori bawaan tidak dapat dihapus.</p>
+  <p class="muted">Kelola kategori transaksi. Semua kategori bisa dipakai untuk pemasukan maupun pengeluaran.</p>
 
   <div class="grid-2">
-    <!-- PEMASUKAN -->
+    <!-- BAWAAN -->
     <section class="card">
-      <h2><span class="dot income"></span> Pemasukan</h2>
-
-      <form method="post" action="/categories" class="inline-form">
-        <?= \App\Helpers\csrf_field() ?>
-        <input type="hidden" name="type" value="income">
-        <input type="text" name="name" placeholder="cth: Gaji, Bonus" maxlength="64" required>
-        <button class="btn-primary" type="submit">Tambah</button>
-      </form>
-
+      <h2>Bawaan</h2>
+      <p class="muted">Kategori bawaan tidak dapat dihapus.</p>
       <ul class="category-list">
-        <?php foreach ($byType['income'] as $c): ?>
+        <?php foreach ($builtin as $c): ?>
           <li>
-            <span><?= e($c['name']) ?>
-              <?php if ((int)$c['is_builtin']): ?>
-                <small class="muted">(bawaan)</small>
-              <?php endif; ?>
-            </span>
-            <?php if (!(int)$c['is_builtin']): ?>
-              <form action="/categories/delete" method="post" class="inline"
-                    onsubmit="return confirm('Hapus kategori ini?');">
-                <?= \App\Helpers\csrf_field() ?>
-                <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
-                <button class="btn-link danger" type="submit">Hapus</button>
-              </form>
-            <?php endif; ?>
+            <span><?= e($c['name']) ?></span>
           </li>
         <?php endforeach; ?>
       </ul>
     </section>
 
-    <!-- PENGELUARAN -->
+    <!-- CUSTOM -->
     <section class="card">
-      <h2><span class="dot expense"></span> Pengeluaran</h2>
+      <h2>Kategori Kustom</h2>
 
       <form method="post" action="/categories" class="inline-form">
         <?= \App\Helpers\csrf_field() ?>
-        <input type="hidden" name="type" value="expense">
-        <input type="text" name="name" placeholder="cth: Makan, Transport" maxlength="64" required>
+        <input type="text" name="name" placeholder="cth: Gaji, Makan, Transport" maxlength="64" required>
         <button class="btn-primary" type="submit">Tambah</button>
       </form>
 
       <ul class="category-list">
-        <?php foreach ($byType['expense'] as $c): ?>
-          <li>
-            <span><?= e($c['name']) ?>
-              <?php if ((int)$c['is_builtin']): ?>
-                <small class="muted">(bawaan)</small>
-              <?php endif; ?>
-            </span>
-            <?php if (!(int)$c['is_builtin']): ?>
+        <?php if (empty($custom)): ?>
+          <li class="muted">Belum ada kategori kustom.</li>
+        <?php else: ?>
+          <?php foreach ($custom as $c): ?>
+            <li>
+              <span><?= e($c['name']) ?></span>
               <form action="/categories/delete" method="post" class="inline"
                     onsubmit="return confirm('Hapus kategori ini?');">
                 <?= \App\Helpers\csrf_field() ?>
                 <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
                 <button class="btn-link danger" type="submit">Hapus</button>
               </form>
-            <?php endif; ?>
-          </li>
-        <?php endforeach; ?>
+            </li>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </ul>
     </section>
   </div>

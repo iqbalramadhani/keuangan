@@ -49,6 +49,7 @@ jobs:
             --exclude=sql/
             --exclude=composer.*
             --exclude=phpunit.xml
+          local-dir: ./public/
       - name: Trigger Migration
         run: |
           curl -sf "https://${{ secrets.DEPLOY_URL }}/setup.php?token=${{ secrets.DEPLOY_TOKEN }}" || echo "Migration trigger failed (check DEPLOY_URL + DEPLOY_TOKEN)"

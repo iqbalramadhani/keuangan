@@ -30,10 +30,7 @@ final class TransactionController extends Controller
         $catMdl = new Category($this->db);
 
         $list = $txMdl->listFiltered($userId, $filters);
-        $categories = [
-            'income'  => $catMdl->findByType('income'),
-            'expense' => $catMdl->findByType('expense'),
-        ];
+        $categories = $catMdl->all();
 
         $this->render('transactions/index', [
             'title'      => 'Transaksi — Keuangan',
@@ -65,10 +62,7 @@ final class TransactionController extends Controller
             }
         }
 
-        $categories = [
-            'income'  => $catMdl->findByType('income'),
-            'expense' => $catMdl->findByType('expense'),
-        ];
+        $categories = $catMdl->all();
 
         $this->render('transactions/form', [
             'title'      => ($id ? 'Edit' : 'Tambah') . ' Transaksi — Keuangan',
@@ -93,14 +87,7 @@ final class TransactionController extends Controller
         }
         [$categoryId, $type, $amount, $description, $date] = $this->extractFields();
 
-        // Ensure the selected category belongs to the chosen type.
-        $catMdl = new Category($this->db);
-        $cat    = $catMdl->find($categoryId);
-        if (!$cat || $cat['type'] !== $type) {
-            Flash::error('Kategori tidak valid untuk tipe yang dipilih.');
-            $this->redirect('/transactions/new');
-            return;
-        }
+        // Category is free to use for any transaction type now.
 
         $txMdl = new Transaction($this->db);
         $txMdl->create($userId, $categoryId, $type, $amount, $description, $date);
@@ -129,13 +116,7 @@ final class TransactionController extends Controller
         }
         [$categoryId, $type, $amount, $description, $date] = $this->extractFields();
 
-        $catMdl = new Category($this->db);
-        $cat    = $catMdl->find($categoryId);
-        if (!$cat || $cat['type'] !== $type) {
-            Flash::error('Kategori tidak valid untuk tipe yang dipilih.');
-            $this->redirect('/transactions/edit?id=' . $id);
-            return;
-        }
+        // Category is free to use for any transaction type now.
 
         $txMdl = new Transaction($this->db);
         $ok    = $txMdl->update($id, $userId, $categoryId, $type, $amount, $description, $date);

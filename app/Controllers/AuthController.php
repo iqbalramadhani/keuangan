@@ -19,9 +19,8 @@ final class AuthController extends Controller
             return;
         }
         $this->render('auth/login', [
-            'title'  => 'Masuk — Keuangan',
-            'layout' => null,
-        ]);
+            'title' => 'Masuk — Keuangan',
+        ], null);
     }
 
     public function loginProcess(): void

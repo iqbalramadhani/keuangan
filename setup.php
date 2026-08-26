@@ -68,11 +68,41 @@ if (PHP_SAPI !== 'cli') {
 $migrationsDir = __DIR__ . '/database/migrations';
 $migrator  = new Migrator($db, $migrationsDir);
 
+// ── Auto-repair: detect partial migrations ──────────────────────────────────
+// Terjadi ketika PDO::exec() hanya menjalankan statement pertama dari SQL
+// multi-statement, sehingga schema_migrations mencatat version sebagai
+// "applied" padahal tabel-tabel lainnya belum dibuat.
+// Deteksi: schema_migrations ada, tapi tabel `users` tidak ada.
+try {
+    $hasMigrationsTable = (bool)$db->query(
+        "SELECT 1 FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'schema_migrations'"
+    )->fetchColumn();
+
+    $hasUsersTable = (bool)$db->query(
+        "SELECT 1 FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'"
+    )->fetchColumn();
+
+    if ($hasMigrationsTable && !$hasUsersTable) {
+        echo "⚠️  Terdeteksi migration parsial — mereset schema_migrations...\n";
+        $db->exec("DELETE FROM schema_migrations WHERE version = '001_initial'");
+        echo "   Reset selesai, akan dijalankan ulang.\n";
+    }
+} catch (\Throwable $e) {
+    // Tidak bisa cek — lanjut saja, migrator akan handle error-nya.
+    echo "⚠️  Tidak dapat cek tabel: " . $e->getMessage() . "\n";
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 echo "🔧 Menjalankan migration...\n";
 try {
     $applied = $migrator->up();
 } catch (\Throwable $e) {
-    fwrite(STDERR, "✗ Migration gagal: " . $e->getMessage() . "\n");
+    $msg = "✗ Migration gagal: " . $e->getMessage();
+    fwrite(STDERR, $msg . "\n");
+    echo $msg . "\n";
+    http_response_code(500);
     exit(1);
 }
 

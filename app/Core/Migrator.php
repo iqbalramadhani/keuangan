@@ -168,13 +168,19 @@ final class Migrator
         }
         $sql = file_get_contents($path);
 
+        // PDO::exec() stops at the first statement in a multi-statement file.
+        // Split by semicolons and execute each statement individually.
+        $statements = $this->splitStatements($sql);
+
         $this->db->beginTransaction();
         try {
-            $this->db->exec($sql);
-            $stmt = $this->db->prepare(
+            foreach ($statements as $stmt) {
+                $this->db->exec($stmt);
+            }
+            $insert = $this->db->prepare(
                 'INSERT INTO ' . self::MIGRATIONS_TABLE . ' (version) VALUES (:v)'
             );
-            $stmt->execute([':v' => $version]);
+            $insert->execute([':v' => $version]);
             if ($this->db->inTransaction()) {
                 $this->db->commit();
             }
@@ -188,6 +194,28 @@ final class Migrator
                 $e
             );
         }
+    }
+
+    /**
+     * Split a SQL file into individual statements, stripping -- line comments
+     * and skipping blank/comment-only chunks.
+     *
+     * @return string[]
+     */
+    private function splitStatements(string $sql): array
+    {
+        // Remove single-line comments (-- ...) to avoid false semicolons in comments.
+        $sql = preg_replace('/--[^\n]*/', '', $sql);
+
+        $chunks = explode(';', $sql);
+        $stmts  = [];
+        foreach ($chunks as $chunk) {
+            $chunk = trim($chunk);
+            if ($chunk !== '') {
+                $stmts[] = $chunk;
+            }
+        }
+        return $stmts;
     }
 
     /**

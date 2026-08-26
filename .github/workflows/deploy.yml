@@ -3,6 +3,7 @@ name: Deploy to Shared Hosting
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 env:
   DEPLOY_URL: ${{ secrets.DEPLOY_URL }}

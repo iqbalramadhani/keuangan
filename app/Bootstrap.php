@@ -221,6 +221,7 @@ final class Bootstrap
         }
         self::$config = $cfg;
     }
+    
 
     private static function loadDb(): PDO
     {

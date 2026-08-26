@@ -175,7 +175,9 @@ final class Migrator
                 'INSERT INTO ' . self::MIGRATIONS_TABLE . ' (version) VALUES (:v)'
             );
             $stmt->execute([':v' => $version]);
-            $this->db->commit();
+            if ($this->db->inTransaction()) {
+                $this->db->commit();
+            }
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();

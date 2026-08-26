@@ -65,7 +65,7 @@ if (PHP_SAPI !== 'cli') {
     }
 }
 
-$migrationsDir = dirname(__DIR__) . '/database/migrations';
+$migrationsDir = __DIR__ . '/database/migrations';
 $migrator  = new Migrator($db, $migrationsDir);
 
 echo "🔧 Menjalankan migration...\n";

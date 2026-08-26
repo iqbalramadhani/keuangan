@@ -66,5 +66,5 @@ CREATE TABLE IF NOT EXISTS `login_attempts` (
 -- Seed built-in parent categories (cannot be deleted)
 -- ---------------------------------------------------------------------------
 INSERT IGNORE INTO `categories` (`name`, `is_builtin`) VALUES
-  ('Pemasukan',   1),
-  ('Pengeluaran', 1);
+  ('Voucher',   1),
+  ('Print', 1);

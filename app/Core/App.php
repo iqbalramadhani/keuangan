@@ -66,6 +66,11 @@ final class App
         // API
         $r->get   ('/api/summary',  'Api', 'summary');
 
+        // Telegram Bot
+        $r->post  ('/telegram/webhook', 'Telegram', 'webhook');
+        $r->get   ('/telegram/setup',   'Telegram', 'setup');
+        $r->get   ('/telegram/info',    'Telegram', 'info');
+
         // Migration (no auth required — operator runs this after deploy)
         $r->get   ('/migrate',      'Migrate', 'index');
         $r->post  ('/migrate',      'Migrate', 'index');

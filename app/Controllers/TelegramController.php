@@ -44,11 +44,10 @@ final class TelegramController extends Controller
         }
 
         // 3. Delegate ke BotHandler
-        $token         = \App\Bootstrap::env('TELEGRAM_BOT_TOKEN', '');
-        $allowedChatId = \App\Bootstrap::env('TELEGRAM_ALLOWED_CHAT_ID', '');
+        $token = \App\Bootstrap::env('TELEGRAM_BOT_TOKEN', '');
 
         $client  = new TelegramClient($token);
-        $handler = new BotHandler($client, $this->db, $allowedChatId);
+        $handler = new BotHandler($client, $this->db);
 
         try {
             $handler->handle($update);

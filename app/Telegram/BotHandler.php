@@ -10,7 +10,7 @@ use PDO;
 /**
  * BotHandler — Proses semua update dari Telegram.
  *
- * Mode: Single-user (chat_id divalidasi dari TELEGRAM_ALLOWED_CHAT_ID).
+ * Mode: Public (semua user bisa akses).
  *
  * Flow utama:
  *   1. User kirim pesan teks  → parseAmount() → simpan state "pending_category"
@@ -36,7 +36,6 @@ final class BotHandler
     public function __construct(
         private readonly TelegramClient $client,
         private readonly PDO            $db,
-        private readonly string         $allowedChatId,
     ) {}
 
     // -------------------------------------------------------------------------
@@ -69,12 +68,6 @@ final class BotHandler
     {
         $chatId = (string)($msg['chat']['id'] ?? '');
         $text   = trim($msg['text'] ?? '');
-
-        // Guard: hanya chat_id yang diizinkan
-        if (!$this->isAllowed($chatId)) {
-            $this->client->sendMessage($chatId, '⛔ Maaf, bot ini privat.');
-            return;
-        }
 
         // Command routing
         $command = strtolower(strtok($text, ' '));
@@ -127,11 +120,6 @@ final class BotHandler
         $messageId = (int)($cb['message']['message_id'] ?? 0);
         $data      = $cb['data'] ?? '';
         $cbId      = $cb['id'] ?? '';
-
-        if (!$this->isAllowed($chatId)) {
-            $this->client->answerCallbackQuery($cbId, '⛔ Tidak diizinkan.');
-            return;
-        }
 
         // Format callback_data: "cat:{category_id}"
         if (!str_starts_with($data, 'cat:')) {
@@ -499,15 +487,6 @@ final class BotHandler
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
-
-    private function isAllowed(string $chatId): bool
-    {
-        if ($this->allowedChatId === '') {
-            // Jika tidak dikonfigurasi, tolak semua
-            return false;
-        }
-        return $chatId === $this->allowedChatId;
-    }
 
     /**
      * Resolusi user_id untuk single-user mode.

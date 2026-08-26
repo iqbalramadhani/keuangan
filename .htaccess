@@ -1,9 +1,23 @@
-# Block direct access to anything above /public on shared hosting.
-# If deploying to cPanel/XAMPP and the entire repo is mirrored into
-# /public_html/, deny access to non-public folders explicitly below.
+# ============================================================================
+# Root .htaccess (public_html/)
+# On shared hosting the entire repo is deployed into public_html/.
+# All web traffic should be routed into the public/ sub-directory which
+# contains the front controller (index.php) and compiled assets.
+# ============================================================================
 
-Require all denied
+<IfModule mod_rewrite.c>
+  RewriteEngine On
 
+  # If the request already targets public/ or a real file/dir, leave it alone.
+  RewriteCond %{REQUEST_URI} !^/public/
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Rewrite everything else through public/index.php.
+  RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Security headers
 <IfModule mod_headers.c>
   Header set X-Frame-Options "SAMEORIGIN"
   Header set X-Content-Type-Options "nosniff"

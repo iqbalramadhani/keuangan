@@ -40,7 +40,7 @@ final class Transaction extends Model
 
         $sql =
             'SELECT t.id, t.type, t.amount, t.description, t.tx_date,
-                    t.category_id, c.name AS category_name
+                    t.payment_method, t.category_id, c.name AS category_name
              FROM transactions t
              JOIN categories c ON c.id = t.category_id
              WHERE ' . implode(' AND ', $where) . '
@@ -53,19 +53,19 @@ final class Transaction extends Model
     public function find(int $id, int $userId): ?array
     {
         return $this->fetchOne(
-            'SELECT t.*, c.name AS category_name, c.type AS category_type
+            'SELECT t.*, c.name AS category_name
              FROM transactions t JOIN categories c ON c.id = t.category_id
              WHERE t.id = :id AND t.user_id = :uid LIMIT 1',
             [':id' => $id, ':uid' => $userId]
         );
     }
 
-    public function create(int $userId, int $categoryId, string $type, string $amount, ?string $description, string $txDate): int
+    public function create(int $userId, int $categoryId, string $type, string $amount, ?string $description, string $txDate, string $paymentMethod = 'cash'): int
     {
         $stmt = $this->db->prepare(
             'INSERT INTO transactions
-                (user_id, category_id, type, amount, description, tx_date)
-             VALUES (:u, :c, :t, :a, :d, :date)'
+                (user_id, category_id, type, amount, description, tx_date, payment_method)
+             VALUES (:u, :c, :t, :a, :d, :date, :pm)'
         );
         $stmt->execute([
             ':u'    => $userId,
@@ -74,15 +74,16 @@ final class Transaction extends Model
             ':a'    => $amount,
             ':d'    => $description,
             ':date' => $txDate,
+            ':pm'   => $paymentMethod,
         ]);
         return (int)$this->db->lastInsertId();
     }
 
-    public function update(int $id, int $userId, int $categoryId, string $type, string $amount, ?string $description, string $txDate): bool
+    public function update(int $id, int $userId, int $categoryId, string $type, string $amount, ?string $description, string $txDate, string $paymentMethod = 'cash'): bool
     {
         $rows = $this->execute(
             'UPDATE transactions
-             SET category_id = :c, type = :t, amount = :a, description = :d, tx_date = :date
+             SET category_id = :c, type = :t, amount = :a, description = :d, tx_date = :date, payment_method = :pm
              WHERE id = :id AND user_id = :u',
             [
                 ':c'    => $categoryId,
@@ -90,6 +91,7 @@ final class Transaction extends Model
                 ':a'    => $amount,
                 ':d'    => $description,
                 ':date' => $txDate,
+                ':pm'   => $paymentMethod,
                 ':id'   => $id,
                 ':u'    => $userId,
             ]

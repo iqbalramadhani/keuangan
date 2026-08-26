@@ -89,6 +89,7 @@ $filters    = $filters    ?? ['from' => '', 'to' => '', 'type' => '', 'category_
                 <th class="ps-4">Tanggal</th>
                 <th>Tipe</th>
                 <th>Kategori</th>
+                <th>Sumber</th>
                 <th>Deskripsi</th>
                 <th class="num">Nominal</th>
                 <th class="text-end pe-4">Aksi</th>
@@ -105,6 +106,17 @@ $filters    = $filters    ?? ['from' => '', 'to' => '', 'type' => '', 'category_
                     </span>
                   </td>
                   <td class="fw-medium text-dark"><?= e($r['category_name']) ?></td>
+                  <td>
+                    <?php if (($r['payment_method'] ?? 'cash') === 'transfer'): ?>
+                      <span class="badge rounded-pill px-3 py-1 fw-medium" style="background:#e0f2fe;color:#0369a1">
+                        <i class="bi bi-bank me-1"></i>Transfer
+                      </span>
+                    <?php else: ?>
+                      <span class="badge rounded-pill px-3 py-1 fw-medium" style="background:#f0fdf4;color:#166534">
+                        <i class="bi bi-cash-coin me-1"></i>Cash
+                      </span>
+                    <?php endif; ?>
+                  </td>
                   <td class="text-secondary"><?= e($r['description'] ?? '-') ?></td>
                   <td class="num <?= e($r['type']) ?> fw-semibold">
                     <?= $r['type'] === 'income' ? '+' : '-' ?>

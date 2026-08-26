@@ -15,9 +15,15 @@ $isEdit   = (bool)$tx;
 $action   = $isEdit ? '/transactions/update' : '/transactions';
 $type     = $tx['type']           ?? 'expense';
 $catId    = (int)($tx['category_id'] ?? 0);
-$amount   = $tx['amount']         ?? '';
-$desc     = $tx['description']    ?? '';
-$date     = $tx['tx_date']        ?? date('Y-m-d');
+$amount   = $tx['amount'] ?? '';
+if ($amount !== '' && is_numeric($amount)) {
+    // Display as whole number with dot thousands separator (e.g. "150.000")
+    $amountFloat = (float)$amount;
+    $amount = number_format($amountFloat, 0, ',', '.');
+}
+$desc          = $tx['description']    ?? '';
+$date          = $tx['tx_date']        ?? date('Y-m-d');
+$paymentMethod = $tx['payment_method'] ?? 'cash';
 ?>
 <div class="page" style="max-width: 640px; margin: 0 auto;">
   <div class="mb-4">
@@ -76,10 +82,9 @@ $date     = $tx['tx_date']        ?? date('Y-m-d');
           <label class="form-label small fw-semibold text-secondary mb-1">NOMINAL <span class="text-danger">*</span></label>
           <div class="input-group">
             <span class="input-group-text bg-light border-end-0 fw-semibold text-secondary">Rp</span>
-            <input type="text" class="form-control border-start-0 ps-1 fw-semibold fs-5" name="amount" inputmode="decimal"
-                   value="<?= e((string)$amount) ?>" placeholder="0" required>
+            <input type="text" class="form-control border-start-0 ps-1 fw-semibold fs-5" name="amount" id="amount-input" inputmode="numeric"
+                   value="<?= e((string)$amount) ?>" placeholder="0" required autocomplete="off">
           </div>
-          <div class="form-text small text-muted">Contoh: 1500000 atau 1.500.000,00</div>
         </div>
 
         <!-- Tanggal -->
@@ -101,6 +106,27 @@ $date     = $tx['tx_date']        ?? date('Y-m-d');
           </div>
         </div>
 
+        <!-- Sumber Pembayaran -->
+        <div>
+          <label class="form-label small fw-semibold text-secondary mb-2 d-block">SUMBER <span class="text-danger">*</span></label>
+          <div class="row g-3">
+            <div class="col-6">
+              <input type="radio" class="btn-check" name="payment_method" id="pm-cash" value="cash" <?= $paymentMethod === 'cash' ? 'checked' : '' ?>>
+              <label class="btn btn-outline-secondary w-100 py-3 rounded-3 d-flex flex-column align-items-center gap-1 fw-semibold shadow-sm" for="pm-cash">
+                <i class="bi bi-cash-coin fs-4"></i>
+                <span>Cash</span>
+              </label>
+            </div>
+            <div class="col-6">
+              <input type="radio" class="btn-check" name="payment_method" id="pm-transfer" value="transfer" <?= $paymentMethod === 'transfer' ? 'checked' : '' ?>>
+              <label class="btn btn-outline-info w-100 py-3 rounded-3 d-flex flex-column align-items-center gap-1 fw-semibold shadow-sm" for="pm-transfer">
+                <i class="bi bi-bank fs-4"></i>
+                <span>Transfer</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="d-flex align-items-center justify-content-end gap-3 mt-3 pt-3 border-top">
           <a href="/transactions" class="btn btn-outline-secondary rounded-pill px-4">Batal</a>
@@ -112,3 +138,23 @@ $date     = $tx['tx_date']        ?? date('Y-m-d');
     </div>
   </div>
 </div>
+<script>
+(function () {
+  const input = document.getElementById('amount-input');
+  if (!input) return;
+
+  function formatThousands(val) {
+    const digits = val.replace(/\D/g, '');
+    if (!digits) return '';
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  input.addEventListener('input', function () {
+    const cursorPos = this.selectionStart;
+    const prevLen   = this.value.length;
+    this.value = formatThousands(this.value);
+    const diff = this.value.length - prevLen;
+    this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+  });
+})();
+</script>

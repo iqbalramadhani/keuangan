@@ -85,12 +85,12 @@ final class TransactionController extends Controller
             $this->redirect('/transactions/new');
             return;
         }
-        [$categoryId, $type, $amount, $description, $date] = $this->extractFields();
+        [$categoryId, $type, $amount, $description, $date, $paymentMethod] = $this->extractFields();
 
         // Category is free to use for any transaction type now.
 
         $txMdl = new Transaction($this->db);
-        $txMdl->create($userId, $categoryId, $type, $amount, $description, $date);
+        $txMdl->create($userId, $categoryId, $type, $amount, $description, $date, $paymentMethod);
         Flash::success('Transaksi ditambahkan.');
         $this->redirect('/transactions');
     }
@@ -114,12 +114,12 @@ final class TransactionController extends Controller
             $this->redirect('/transactions/edit?id=' . $id);
             return;
         }
-        [$categoryId, $type, $amount, $description, $date] = $this->extractFields();
+        [$categoryId, $type, $amount, $description, $date, $paymentMethod] = $this->extractFields();
 
         // Category is free to use for any transaction type now.
 
         $txMdl = new Transaction($this->db);
-        $ok    = $txMdl->update($id, $userId, $categoryId, $type, $amount, $description, $date);
+        $ok    = $txMdl->update($id, $userId, $categoryId, $type, $amount, $description, $date, $paymentMethod);
         Flash::success($ok ? 'Transaksi diperbarui.' : 'Tidak ada perubahan.');
         $this->redirect('/transactions');
     }
@@ -171,6 +171,10 @@ final class TransactionController extends Controller
         if ($date === null) {
             return 'Tanggal tidak valid (YYYY-MM-DD).';
         }
+        $pm = (string)$this->request->postInput('payment_method', '');
+        if (!in_array($pm, ['cash', 'transfer'], true)) {
+            return 'Sumber pembayaran tidak valid.';
+        }
         return null;
     }
 
@@ -186,6 +190,10 @@ final class TransactionController extends Controller
         $descRaw = (string)$this->request->postInput('description', '');
         $desc    = trim($descRaw) === '' ? null : Validation::text($descRaw, 255);
         $date    = (string)$this->request->postInput('tx_date', '');
-        return [$catId, $type, $amount, $desc, $date];
+        $pm      = (string)$this->request->postInput('payment_method', 'cash');
+        if (!in_array($pm, ['cash', 'transfer'], true)) {
+            $pm = 'cash';
+        }
+        return [$catId, $type, $amount, $desc, $date, $pm];
     }
 }

@@ -121,37 +121,63 @@ if ($hasUsers) {
 } else {
     echo "\nTabel users kosong — membuat admin user.\n";
 
-    $cliUsername = $argv[1] ?? null;
-    $cliPassword = $argv[2] ?? null;
+    $username = null;
+    $password = null;
 
-    if (PHP_SAPI === 'cli' && $cliUsername && $cliPassword) {
-        $username = $cliUsername;
-        $password = $cliPassword;
+    if (PHP_SAPI === 'cli') {
+        $cliUsername = $argv[1] ?? null;
+        $cliPassword = $argv[2] ?? null;
+
+        if ($cliUsername && $cliPassword) {
+            $username = $cliUsername;
+            $password = $cliPassword;
+        } else {
+            echo "Buat admin user\n";
+            do {
+                echo "  Username (3-32, A-Z a-z 0-9 _): ";
+                $username = trim((string)fgets(STDIN));
+                if (!preg_match('/^[A-Za-z0-9_]{3,32}$/', $username)) {
+                    echo "    Tidak valid.\n"; $username = '';
+                }
+            } while ($username === '');
+
+            do {
+                echo "  Password (min 8 chars): ";
+                $password = trim((string)fgets(STDIN));
+                if (strlen($password) < 8) {
+                    echo "    Minimal 8 karakter.\n"; $password = '';
+                }
+            } while ($password === '');
+        }
     } else {
-        echo "Buat admin user\n";
-        do {
-            echo "  Username (3-32, A-Z a-z 0-9 _): ";
-            $username = trim((string)fgets(STDIN));
-            if (!preg_match('/^[A-Za-z0-9_]{3,32}$/', $username)) {
-                echo "    Tidak valid.\n"; $username = '';
-            }
-        } while ($username === '');
+        // Web request
+        $username = $_POST['admin_user'] ?? $_GET['admin_user'] ?? null;
+        $password = $_POST['admin_pass'] ?? $_GET['admin_pass'] ?? null;
 
-        do {
-            echo "  Password (min 8 chars): ";
-            $password = trim((string)fgets(STDIN));
-            if (strlen($password) < 8) {
-                echo "    Minimal 8 karakter.\n"; $password = '';
-            }
-        } while ($password === '');
+        if (!$username || !$password) {
+            echo "⚠️ Tabel users kosong. Untuk membuat admin pertama, akses URL ini di browser:\n";
+            echo "   ?token=...&admin_user=ADMIN_KAMU&admin_pass=PASSWORD_KAMU\n";
+            // Exit normally so CI/CD does not fail.
+            exit(0);
+        }
     }
 
     if (!preg_match('/^[A-Za-z0-9_]{3,32}$/', $username)) {
-        fwrite(STDERR, "Username harus 3-32 karakter alfanumerik/garis-bawah.\n");
+        $msg = "Username harus 3-32 karakter alfanumerik/garis-bawah.";
+        fwrite(STDERR, $msg . "\n");
+        if (PHP_SAPI !== 'cli') {
+            http_response_code(400);
+            echo $msg . "\n";
+        }
         exit(1);
     }
     if (strlen($password) < 8) {
-        fwrite(STDERR, "Password minimal 8 karakter.\n");
+        $msg = "Password minimal 8 karakter.";
+        fwrite(STDERR, $msg . "\n");
+        if (PHP_SAPI !== 'cli') {
+            http_response_code(400);
+            echo $msg . "\n";
+        }
         exit(1);
     }
 

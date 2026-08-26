@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App;
 
+use App\Core\Logger;
 use PDO;
 
 /**
@@ -146,13 +147,20 @@ final class Bootstrap
         ini_set('display_startup_errors', $isProd ? '0' : '1');
         ini_set('log_errors', '1');
 
-        $logPath = dirname(__DIR__) . '/runtime/php-error.log';
-        if (is_dir(dirname($logPath)) || @mkdir(dirname($logPath), 0775, true)) {
-            ini_set('error_log', $logPath);
+        // Point PHP's built-in error_log to today's daily log file.
+        $tz      = self::env('APP_TZ', 'Asia/Jakarta');
+        $today   = (new \DateTimeImmutable('now', new \DateTimeZone($tz)))->format('Y-m-d');
+        $logsDir = dirname(__DIR__) . '/runtime/logs';
+        if (!is_dir($logsDir)) {
+            @mkdir($logsDir, 0775, true);
         }
+        ini_set('error_log', $logsDir . '/' . $today . '.log');
 
         set_exception_handler(function (\Throwable $e) use ($isProd): void {
-            error_log('[Uncaught] ' . $e::class . ': ' . $e->getMessage());
+            Logger::error('[Uncaught] ' . $e::class . ': ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             if ($isProd) {
                 http_response_code(500);
                 echo 'Internal Server Error';
@@ -201,6 +209,8 @@ final class Bootstrap
             'idle_timeout'         => (int)self::env('APP_IDLE_TIMEOUT', 1800),
             'login_max_failures'   => (int)self::env('LOGIN_MAX_FAILURES', 5),
             'login_failure_window' => (int)self::env('LOGIN_FAILURE_WINDOW', 900),
+            // Logging: berapa hari file log disimpan (0 = tidak pernah dihapus).
+            'log_retention_days'   => (int)self::env('LOG_RETENTION_DAYS', 30),
         ];
         $fileCfg = dirname(__DIR__) . '/config/app.php';
         if (is_file($fileCfg)) {

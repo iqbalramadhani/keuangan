@@ -18,6 +18,53 @@ final class Transaction extends Model
      */
     public function listFiltered(int $userId, array $filters): array
     {
+        [$where, $params] = $this->buildFilter($userId, $filters);
+
+        $sql =
+            'SELECT t.id, t.type, t.amount, t.description, t.tx_date,
+                    t.payment_method, t.category_id, c.name AS category_name
+             FROM transactions t
+             JOIN categories c ON c.id = t.category_id
+             WHERE ' . implode(' AND ', $where) . '
+             ORDER BY t.tx_date DESC, t.id DESC
+             LIMIT 500';
+
+        return $this->fetchAll($sql, $params);
+    }
+
+    /**
+     * Summary (income total, expense total, count) for the same filters.
+     * @return array{income:float, expense:float, count:int}
+     */
+    public function summaryFiltered(int $userId, array $filters): array
+    {
+        [$where, $params] = $this->buildFilter($userId, $filters);
+
+        $sql =
+            'SELECT
+                COALESCE(SUM(CASE WHEN t.type = "income"  THEN t.amount ELSE 0 END), 0) AS income,
+                COALESCE(SUM(CASE WHEN t.type = "expense" THEN t.amount ELSE 0 END), 0) AS expense,
+                COUNT(*) AS cnt
+             FROM transactions t
+             JOIN categories c ON c.id = t.category_id
+             WHERE ' . implode(' AND ', $where);
+
+        $row = $this->fetchOne($sql, $params) ?: [
+            'income' => '0', 'expense' => '0', 'cnt' => 0,
+        ];
+        return [
+            'income'  => (float)$row['income'],
+            'expense' => (float)$row['expense'],
+            'count'   => (int)$row['cnt'],
+        ];
+    }
+
+    /**
+     * Build WHERE clause and params from filters.
+     * @return array{0: string[], 1: array}
+     */
+    private function buildFilter(int $userId, array $filters): array
+    {
         $where  = ['t.user_id = :uid'];
         $params = [':uid' => $userId];
 
@@ -37,17 +84,12 @@ final class Transaction extends Model
             $where[] = 't.category_id = :cid';
             $params[':cid'] = (int)$filters['category_id'];
         }
+        if (!empty($filters['payment_method']) && in_array($filters['payment_method'], ['cash','transfer'], true)) {
+            $where[] = 't.payment_method = :pm';
+            $params[':pm'] = $filters['payment_method'];
+        }
 
-        $sql =
-            'SELECT t.id, t.type, t.amount, t.description, t.tx_date,
-                    t.payment_method, t.category_id, c.name AS category_name
-             FROM transactions t
-             JOIN categories c ON c.id = t.category_id
-             WHERE ' . implode(' AND ', $where) . '
-             ORDER BY t.tx_date DESC, t.id DESC
-             LIMIT 500';
-
-        return $this->fetchAll($sql, $params);
+        return [$where, $params];
     }
 
     public function find(int $id, int $userId): ?array

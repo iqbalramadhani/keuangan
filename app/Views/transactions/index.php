@@ -5,13 +5,15 @@ declare(strict_types=1);
  * @var array $rows
  * @var array $categories  (flat list from Category::all())
  * @var array $filters
+ * @var array $total
  * @var string $csrf
  */
 use App\Helpers\Money;
 
 $rows       = $rows       ?? [];
 $categories = $categories ?? [];
-$filters    = $filters    ?? ['from' => '', 'to' => '', 'type' => '', 'category_id' => ''];
+$filters    = $filters    ?? ['from' => '', 'to' => '', 'type' => '', 'category_id' => '', 'payment_method' => ''];
+$total      = $total      ?? ['income' => 0.0, 'expense' => 0.0, 'count' => 0];
 ?>
 <div class="page">
   <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
@@ -24,6 +26,34 @@ $filters    = $filters    ?? ['from' => '', 'to' => '', 'type' => '', 'category_
       <span>Tambah Transaksi</span>
     </a>
   </div>
+
+  <!-- Summary Card -->
+  <section class="row g-3 mb-4">
+    <div class="col-6 col-md-4">
+      <div class="card border-0 bg-success bg-opacity-10 text-success h-100">
+        <div class="card-body p-3">
+          <small class="text-muted d-block mb-1">Total Pemasukan</small>
+          <strong class="fs-5"><?= Money::formatRupiah($total['income']) ?></strong>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4">
+      <div class="card border-0 bg-danger bg-opacity-10 text-danger h-100">
+        <div class="card-body p-3">
+          <small class="text-muted d-block mb-1">Total Pengeluaran</small>
+          <strong class="fs-5"><?= Money::formatRupiah($total['expense']) ?></strong>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4">
+      <div class="card border-0 bg-<?= ($total['income'] - $total['expense']) >= 0 ? 'primary' : 'warning' ?> bg-opacity-10 text-<?= ($total['income'] - $total['expense']) >= 0 ? 'primary' : 'warning' ?> h-100">
+        <div class="card-body p-3">
+          <small class="text-muted d-block mb-1">Saldo</small>
+          <strong class="fs-5"><?= Money::formatRupiah($total['income'] - $total['expense']) ?></strong>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Filter Card -->
   <section class="card mb-4">
@@ -39,7 +69,7 @@ $filters    = $filters    ?? ['from' => '', 'to' => '', 'type' => '', 'category_
           <input type="date" class="form-control" name="to" value="<?= e($filters['to']) ?>">
         </div>
 
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
           <label class="form-label small fw-medium text-secondary mb-1">Tipe Transaksi</label>
           <select class="form-select" name="type">
             <option value=""          <?= $filters['type'] === '' ? 'selected' : '' ?>>(Semua Tipe)</option>
@@ -48,7 +78,16 @@ $filters    = $filters    ?? ['from' => '', 'to' => '', 'type' => '', 'category_
           </select>
         </div>
 
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
+          <label class="form-label small fw-medium text-secondary mb-1">Sumber</label>
+          <select class="form-select" name="payment_method">
+            <option value="" <?= $filters['payment_method'] === '' ? 'selected' : '' ?>>(Semua Sumber)</option>
+            <option value="cash"     <?= $filters['payment_method'] === 'cash' ? 'selected' : '' ?>>Cash</option>
+            <option value="transfer" <?= $filters['payment_method'] === 'transfer' ? 'selected' : '' ?>>Transfer</option>
+          </select>
+        </div>
+
+        <div class="col-6 col-md-2">
           <label class="form-label small fw-medium text-secondary mb-1">Kategori</label>
           <select class="form-select" name="category_id">
             <option value="">(Semua Kategori)</option>

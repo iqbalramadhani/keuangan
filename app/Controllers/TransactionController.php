@@ -17,19 +17,24 @@ final class TransactionController extends Controller
         $userId = (int)$_SESSION['user_id'];
 
         $filters = [
-            'from'        => Validation::date((string)$this->request->getInput('from', '')) ?: '',
-            'to'          => Validation::date((string)$this->request->getInput('to', '')) ?: '',
-            'type'        => (string)$this->request->getInput('type', ''),
-            'category_id' => (string)$this->request->getInput('category_id', ''),
+            'from'           => Validation::date((string)$this->request->getInput('from', '')) ?: '',
+            'to'             => Validation::date((string)$this->request->getInput('to', '')) ?: '',
+            'type'           => (string)$this->request->getInput('type', ''),
+            'category_id'    => (string)$this->request->getInput('category_id', ''),
+            'payment_method' => (string)$this->request->getInput('payment_method', ''),
         ];
         if (!in_array($filters['type'], ['income','expense',''], true)) {
             $filters['type'] = '';
+        }
+        if (!in_array($filters['payment_method'], ['cash','transfer',''], true)) {
+            $filters['payment_method'] = '';
         }
 
         $txMdl  = new Transaction($this->db);
         $catMdl = new Category($this->db);
 
-        $list = $txMdl->listFiltered($userId, $filters);
+        $list  = $txMdl->listFiltered($userId, $filters);
+        $total = $txMdl->summaryFiltered($userId, $filters);
         $categories = $catMdl->all();
 
         $this->render('transactions/index', [
@@ -37,6 +42,7 @@ final class TransactionController extends Controller
             'rows'       => $list,
             'categories' => $categories,
             'filters'    => $filters,
+            'total'      => $total,
             'csrf'       => \App\Helpers\csrf_token(),
         ]);
     }

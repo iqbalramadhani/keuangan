@@ -15,7 +15,11 @@ use PDO;
  * Flow utama:
  *   1. User kirim pesan teks  → parseAmount() → simpan state "pending_category"
  *      → kirim inline keyboard daftar kategori
- *   2. User tekan tombol kategori → simpan transaksi ke DB → konfirmasi
+ *   2. User tekan tombol kategori → simpan category_id → state "pending_payment_method"
+ *      → kirim inline keyboard Cash/Transfer
+ *   3. User pilih pembayaran → state "pending_note" → tawarkan tambah catatan
+ *   4a. User tekan "Simpan" → finalize transaksi ke DB → konfirmasi
+ *   4b. User tekan "Tambah catatan" → minta input teks → ketik catatan → finalize
  *
  * Format pesan yang didukung:
  *   +50000 makan siang    → pemasukan Rp 50.000
@@ -69,6 +73,13 @@ final class BotHandler
         $chatId = (string)($msg['chat']['id'] ?? '');
         $text   = trim($msg['text'] ?? '');
 
+        // ── Check for pending_note state first ───────────────────────────
+        $state = $this->getState($chatId);
+        if ($state !== null && $state['state'] === 'pending_note') {
+            $this->handleNoteInput($chatId, $text);
+            return;
+        }
+
         // Command routing
         $command = strtolower(strtok($text, ' '));
         switch ($command) {
@@ -121,7 +132,19 @@ final class BotHandler
         $data      = $cb['data'] ?? '';
         $cbId      = $cb['id'] ?? '';
 
-        // Format callback_data: "cat:{category_id}"
+        // ── Step 3: Note options ──────────────────────────────────────
+        if (str_starts_with($data, 'note:')) {
+            $this->handleNoteCallback($chatId, $messageId, $cbId, $data);
+            return;
+        }
+
+        // ── Step 2: Payment method selected ──────────────────────────────
+        if (str_starts_with($data, 'pm:')) {
+            $this->handlePaymentMethodCallback($chatId, $messageId, $cbId, $data);
+            return;
+        }
+
+        // ── Step 1: Category selected ────────────────────────────────────
         if (!str_starts_with($data, 'cat:')) {
             $this->client->answerCallbackQuery($cbId, '❓ Tidak dikenal.');
             return;
@@ -147,42 +170,169 @@ final class BotHandler
             return;
         }
 
-        // Tentukan user_id — untuk single-user bot, ambil user pertama atau dari config
-        $userId = $this->resolveUserId();
-        if ($userId === null) {
-            $this->client->answerCallbackQuery($cbId, 'Konfigurasi user tidak ditemukan.');
+        // Simpan category_id di state, lalu minta pilih metode pembayaran
+        $payload['category_id'] = $categoryId;
+        $payload['category_name'] = $category['name'];
+        $this->saveState($chatId, 'pending_payment_method', $payload);
+
+        $this->client->answerCallbackQuery($cbId, 'Pilih metode pembayaran');
+        $this->sendPaymentMethodKeyboard($chatId, $messageId, $payload, $category['name']);
+        return;
+    }
+
+    private function handleNoteCallback(
+        string $chatId,
+        int    $messageId,
+        string $cbId,
+        string $data
+    ): void {
+        // Ambil state pending_note
+        $state = $this->getState($chatId);
+        if ($state === null || $state['state'] !== 'pending_note') {
+            $this->client->answerCallbackQuery($cbId, 'Tidak ada transaksi pending.');
+            $this->client->editMessageText($chatId, $messageId, '⚠️ Sesi sudah kedaluwarsa.');
             return;
         }
 
-        // Simpan transaksi
+        $option = substr($data, 5); // "add" or "skip"
+
+        if ($option === 'skip') {
+            $this->client->answerCallbackQuery($cbId, '✅ Tersimpan!');
+            $this->finalizeTransaction($chatId, $state['payload']);
+            $this->client->editMessageText($chatId, $messageId, '✅ Transaksi sudah disimpan.');
+            return;
+        }
+
+        // note:add → switch to text input state
+        $this->client->answerCallbackQuery($cbId, 'Ketik catatanmu');
+        $note = $state['payload']['description'] ?? '';
+        $this->client->editMessageText(
+            $chatId,
+            $messageId,
+            "✏️ Ketik catatan untuk transaksi ini.\n\n" .
+            "Catatan saat ini: <i>" . ($note ? htmlspecialchars($note, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '(kosong)') . "</i>\n\n" .
+            "Balas pesan ini dengan catatan baru, atau kirim /skip untuk melewati."
+        );
+    }
+
+    private function handlePaymentMethodCallback(
+        string $chatId,
+        int    $messageId,
+        string $cbId,
+        string $data
+    ): void {
+        // "pm:cash" or "pm:transfer"
+        $method = substr($data, 3);
+
+        // Ambil state pending_payment_method
+        $state = $this->getState($chatId);
+        if ($state === null || $state['state'] !== 'pending_payment_method') {
+            $this->client->answerCallbackQuery($cbId, 'Tidak ada transaksi yang pending.');
+            $this->client->editMessageText($chatId, $messageId, '⚠️ Sesi sudah kedaluwarsa. Silakan input ulang.');
+            return;
+        }
+
+        $payload = $state['payload'];
+        $payload['payment_method'] = $method;
+        $payload['method_label'] = $method === 'transfer' ? 'Transfer' : 'Cash';
+
+        // Simpan state note
+        $this->saveState($chatId, 'pending_note', $payload);
+
+        $this->client->answerCallbackQuery($cbId, 'Pilih opsi catatan');
+        $this->sendNotePrompt($chatId, $messageId, $payload);
+    }
+
+    // -------------------------------------------------------------------------
+    // Note step
+    // -------------------------------------------------------------------------
+
+    private function handleNoteInput(string $chatId, string $text): void
+    {
+        // /skip or /batal from note state
+        if ($text === '/skip' || $text === '/batal') {
+            $state = $this->getState($chatId);
+            if ($state === null) {
+                $this->client->sendMessage($chatId, '⚠️ Tidak ada transaksi pending.');
+                return;
+            }
+            $this->finalizeTransaction($chatId, $state['payload']);
+            return;
+        }
+
+        // Use typed text as description
+        $state = $this->getState($chatId);
+        if ($state === null) {
+            $this->client->sendMessage($chatId, '⚠️ Tidak ada transaksi pending.');
+            return;
+        }
+        $payload = $state['payload'];
+        $payload['description'] = $text;
+
+        $this->finalizeTransaction($chatId, $payload);
+    }
+
+    private function sendNotePrompt(
+        string $chatId,
+        int    $messageId,
+        array  $payload
+    ): void {
+        $icon     = $payload['type'] === 'income' ? '💚' : '🔴';
+        $typeText = $payload['type'] === 'income' ? 'Pemasukan' : 'Pengeluaran';
+        $amount   = $this->formatRupiah($payload['amount']);
+        $desc     = $payload['description'] ? "\n📝 Catatan saat ini: <i>{$payload['description']}</i>" : "\n📝 (belum ada catatan)";
+
+        $buttons = [
+            [
+                ['text' => '📝 Tambah catatan', 'callback_data' => 'note:add'],
+                ['text' => '✅ Simpan', 'callback_data' => 'note:skip'],
+            ],
+        ];
+
+        $this->client->answerCallbackQuery('', '');
+        $this->client->editMessageText(
+            $chatId,
+            $messageId,
+            "{$icon} <b>{$typeText}: {$amount}</b>\n🏷️ Kategori: <b>{$payload['category_name']}</b>\n💳 Pembayaran: {$payload['method_label']}{$desc}\n\n✏️ Tambahkan catatan atau langsung simpan:",
+            [
+                'reply_markup' => json_encode(['inline_keyboard' => $buttons]),
+            ]
+        );
+    }
+
+    private function finalizeTransaction(string $chatId, array $payload): void
+    {
+        $userId = $this->resolveUserId();
+        if ($userId === null) {
+            $this->client->sendMessage($chatId, '⚠️ Konfigurasi user tidak ditemukan.');
+            return;
+        }
+
         $txModel = new Transaction($this->db);
         $txId    = $txModel->create(
             userId:        $userId,
-            categoryId:    $categoryId,
+            categoryId:    (int)$payload['category_id'],
             type:          $payload['type'],
             amount:        (string)$payload['amount'],
             description:   $payload['description'] ?: null,
             txDate:        $payload['tx_date'],
-            paymentMethod: 'cash',
+            paymentMethod: $payload['payment_method'],
         );
 
-        // Hapus state
         $this->clearState($chatId);
 
-        // Konfirmasi
         $icon     = $payload['type'] === 'income' ? '💚' : '🔴';
         $typeText = $payload['type'] === 'income' ? 'Pemasukan' : 'Pengeluaran';
         $amount   = $this->formatRupiah($payload['amount']);
-        $desc     = $payload['description'] ? "\nKeterangan: {$payload['description']}" : '';
+        $desc     = $payload['description'] ? "\n📝 Catatan: {$payload['description']}" : '';
         $date     = $payload['tx_date'];
 
-        $this->client->answerCallbackQuery($cbId, '✅ Tersimpan!');
-        $this->client->editMessageText(
+        $this->client->sendMessage(
             $chatId,
-            $messageId,
             "{$icon} <b>{$typeText} tersimpan!</b>\n\n" .
             "💰 Nominal: <b>{$amount}</b>\n" .
-            "🏷️ Kategori: <b>{$category['name']}</b>{$desc}\n" .
+            "🏷️ Kategori: <b>{$payload['category_name']}</b>\n" .
+            "💳 Pembayaran: {$payload['method_label']}{$desc}\n" .
             "📅 Tanggal: {$date}\n" .
             "🆔 ID: #{$txId}"
         );
@@ -334,6 +484,38 @@ final class BotHandler
             $chatId,
             "{$icon} <b>{$typeText}: {$amount}</b>{$desc}\n\n🏷️ Pilih kategori:",
             $buttons
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Payment method keyboard
+    // -------------------------------------------------------------------------
+
+    private function sendPaymentMethodKeyboard(
+        string $chatId,
+        int    $messageId,
+        array  $payload,
+        string $categoryName
+    ): void {
+        $icon     = $payload['type'] === 'income' ? '💚' : '🔴';
+        $typeText = $payload['type'] === 'income' ? 'Pemasukan' : 'Pengeluaran';
+        $amount   = $this->formatRupiah($payload['amount']);
+        $desc     = $payload['description'] ? "\nKeterangan: <i>{$payload['description']}</i>" : '';
+
+        $buttons = [
+            [
+                ['text' => '💵 Cash', 'callback_data' => 'pm:cash'],
+                ['text' => '🏦 Transfer', 'callback_data' => 'pm:transfer'],
+            ],
+        ];
+
+        $this->client->editMessageText(
+            $chatId,
+            $messageId,
+            "{$icon} <b>{$typeText}: {$amount}</b>\n🏷️ Kategori: <b>{$categoryName}</b>{$desc}\n\n💳 Pilih metode pembayaran:",
+            [
+                'reply_markup' => json_encode(['inline_keyboard' => $buttons]),
+            ]
         );
     }
 

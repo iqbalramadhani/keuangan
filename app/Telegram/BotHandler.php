@@ -451,7 +451,7 @@ final class BotHandler
         $stmt = $this->db->prepare(
             'INSERT INTO telegram_bot_state (chat_id, state, payload)
              VALUES (:cid, :st, :pl)
-             ON DUPLICATE KEY UPDATE state = :st, payload = :pl, updated_at = NOW()'
+             ON DUPLICATE KEY UPDATE state = VALUES(state), payload = VALUES(payload), updated_at = NOW()'
         );
         $stmt->execute([
             ':cid' => $chatId,

@@ -66,6 +66,10 @@ final class App
         // API
         $r->get   ('/api/summary',  'Api', 'summary');
 
+        // System Logs
+        $r->get   ('/system/logs',        'SystemLog', 'index');
+        $r->get   ('/system/logs/view',   'SystemLog', 'view');
+
         // Telegram Bot
         $r->post  ('/telegram/webhook', 'Telegram', 'webhook');
         $r->get   ('/telegram/setup',   'Telegram', 'setup');

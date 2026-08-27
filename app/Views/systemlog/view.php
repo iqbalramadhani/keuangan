@@ -8,12 +8,12 @@ $file = $file ?? '';
 $content = $content ?? '';
 ?>
 <div class="page">
-  <div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-      <h1 class="h3 fw-bold mb-1">Log: <?= e($file) ?></h1>
+  <div class="d-flex align-items-start align-items-md-center justify-content-between mb-4 flex-column flex-md-row gap-3">
+    <div class="min-w-0">
+      <h1 class="h3 fw-bold mb-1 text-break">Log: <?= e($file) ?></h1>
       <p class="text-muted small mb-0">Isi lengkap dari file log.</p>
     </div>
-    <a href="/system/logs" class="btn btn-outline-secondary rounded-pill px-4 d-flex align-items-center gap-2 shadow-sm">
+    <a href="/system/logs" class="btn btn-outline-secondary rounded-pill px-4 d-flex align-items-center gap-2 shadow-sm flex-shrink-0">
       <i class="bi bi-arrow-left"></i>
       <span>Kembali</span>
     </a>

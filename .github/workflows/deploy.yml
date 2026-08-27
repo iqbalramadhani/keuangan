@@ -39,6 +39,8 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: 21
           exclude: |
+            --exclude=.git/**
+            --exclude=.git*
             --exclude=.github
             --exclude=.gitlab-ci.yml
             --exclude=.gitignore

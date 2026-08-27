@@ -39,18 +39,18 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: 21
           exclude: |
-            --exclude=.git/**
-            --exclude=.git*
-            --exclude=.github
-            --exclude=.gitlab-ci.yml
-            --exclude=.gitignore
-            --exclude=.DS_Store
-            --exclude=config/db.php
-            --exclude=app/Views/migrate/
-            --exclude=database/migrations/README.md
-            --exclude=sql/
-            --exclude=composer.*
-            --exclude=phpunit.xml
+            **/.git*
+            **/.git*/**
+            .github/**
+            .gitlab-ci.yml
+            .gitignore
+            .DS_Store
+            config/db.php
+            app/Views/migrate/**
+            database/migrations/README.md
+            sql/**
+            composer.*
+            phpunit.xml
           local-dir: ./
       - name: Trigger Migration
         run: |
